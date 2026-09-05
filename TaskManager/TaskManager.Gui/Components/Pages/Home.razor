@@ -1,0 +1,81 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@using TaskManager.Core
+@inject TaskService TaskSvc
+
+<PageTitle>Gestor de Tarefas</PageTitle>
+
+<h1>As minhas tarefas</h1>
+
+<EditForm Model="@novaTask" OnValidSubmit="AdicionarTask">
+    <DataAnnotationsValidator />
+    <div>
+        <label>Nome:</label>
+        <InputText @bind-Value="novaTask.Name" />
+    </div>
+    <div>
+        <label>Descrição:</label>
+        <InputText @bind-Value="novaTask.Description" />
+    </div>
+    <button type="submit">Adicionar</button>
+</EditForm>
+
+@if (mensagemErro is not null)
+{
+    <p style="color:red">@mensagemErro</p>
+}
+
+<hr />
+
+<ul>
+    @foreach (var task in TaskSvc.TaskList.Values)
+    {
+        <li>
+            @task.ToString()
+            @if (task.Status == TaskItemStatus.Pending)
+            {
+                <button @onclick="() => ConcluirTask(task.Id)">Concluir</button>
+            }
+            <button @onclick="() => RemoverTask(task.Id)">Remover</button>
+        </li>
+    }
+</ul>
+
+@code {
+    private NovaTaskModel novaTask = new();
+    private string? mensagemErro;
+
+    private class NovaTaskModel
+    {
+        public string Name { get; set; } = "";
+        public string Description { get; set; } = "";
+    }
+
+    private void AdicionarTask()
+    {
+        mensagemErro = null;
+        try
+        {
+            var task = new TaskItem(novaTask.Name, novaTask.Description);
+            TaskSvc.AddTask(task);
+            novaTask = new NovaTaskModel(); // limpa o formulário
+        }
+        catch (ArgumentException ex)
+        {
+            mensagemErro = ex.Message;
+        }
+    }
+
+    private void ConcluirTask(string id)
+    {
+        if (TaskSvc.GetTask(id, out var task))
+        {
+            task.ConcludeTask();
+        }
+    }
+
+    private void RemoverTask(string id)
+    {
+        TaskSvc.RemoveTask(id);
+    }
+}
