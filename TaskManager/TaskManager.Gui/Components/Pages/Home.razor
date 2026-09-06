@@ -28,7 +28,7 @@
 <hr />
 
 <ul>
-    @foreach (var task in TaskSvc.TaskList.Values)
+    @foreach (var task in TaskSvc.GetAllTasks())
     {
         <li>
             @task.ToString()
@@ -58,24 +58,43 @@
         {
             var task = new TaskItem(novaTask.Name, novaTask.Description);
             TaskSvc.AddTask(task);
-            novaTask = new NovaTaskModel(); // limpa o formulário
+            novaTask = new NovaTaskModel();
         }
         catch (ArgumentException ex)
         {
             mensagemErro = ex.Message;
         }
+        catch (Exception ex)                
+        {
+            mensagemErro = "Não foi possível guardar a tarefa.";
+        }
     }
 
     private void ConcluirTask(string id)
-    {
-        if (TaskSvc.GetTask(id, out var task))
+    {   
+        try
         {
-            task.ConcludeTask();
+            if (TaskSvc.GetTask(id, out var task))
+            {
+                task.ConcludeTask();
+                TaskSvc.UpdateTask(task);
+            }
+        }
+        catch (Exception ex) 
+        {
+            mensagemErro = "Não foi possível concluir a tarefa.";
         }
     }
 
     private void RemoverTask(string id)
-    {
-        TaskSvc.RemoveTask(id);
+    {   
+        try
+        {
+            TaskSvc.RemoveTask(id);
+        }
+        catch (Exception ex) 
+        {
+            mensagemErro = "Não foi possível remover a tarefa.";
+        }
     }
 }

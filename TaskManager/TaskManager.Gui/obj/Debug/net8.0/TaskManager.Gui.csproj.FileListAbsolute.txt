@@ -65,3 +65,9 @@
 /home/paxaxette/UMINHO/Pessoal/C#/Task-Manager/TaskManager/TaskManager.Gui/obj/Debug/net8.0/TaskManager.Gui.pdb
 /home/paxaxette/UMINHO/Pessoal/C#/Task-Manager/TaskManager/TaskManager.Gui/obj/Debug/net8.0/TaskManager.Gui.genruntimeconfig.cache
 /home/paxaxette/UMINHO/Pessoal/C#/Task-Manager/TaskManager/TaskManager.Gui/obj/Debug/net8.0/ref/TaskManager.Gui.dll
+/home/paxaxette/UMINHO/Pessoal/C#/Task-Manager/TaskManager/TaskManager.Gui/bin/Debug/net8.0/DnsClient.dll
+/home/paxaxette/UMINHO/Pessoal/C#/Task-Manager/TaskManager/TaskManager.Gui/bin/Debug/net8.0/MongoDB.Bson.dll
+/home/paxaxette/UMINHO/Pessoal/C#/Task-Manager/TaskManager/TaskManager.Gui/bin/Debug/net8.0/MongoDB.Driver.dll
+/home/paxaxette/UMINHO/Pessoal/C#/Task-Manager/TaskManager/TaskManager.Gui/bin/Debug/net8.0/SharpCompress.dll
+/home/paxaxette/UMINHO/Pessoal/C#/Task-Manager/TaskManager/TaskManager.Gui/bin/Debug/net8.0/Snappier.dll
+/home/paxaxette/UMINHO/Pessoal/C#/Task-Manager/TaskManager/TaskManager.Gui/bin/Debug/net8.0/ZstdSharp.dll

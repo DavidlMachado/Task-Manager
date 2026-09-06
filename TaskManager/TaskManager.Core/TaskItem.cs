@@ -1,7 +1,10 @@
+using MongoDB.Bson.Serialization.Attributes;
+
 namespace TaskManager.Core;
 
 public class TaskItem
 {
+    [BsonId]
     public string Id { get; private set; }
     public string Name { get; set; }
     public string Description { get; set; } // a short description

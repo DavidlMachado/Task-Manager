@@ -2,30 +2,41 @@ namespace TaskManager.Core;
 
 public class TaskService
 {
-    private Dictionary<string, TaskItem> _tasks = new Dictionary<string, TaskItem>();
+    private readonly ITaskRepository _repository;
 
-    public IReadOnlyDictionary<string, TaskItem> TaskList => _tasks;
+    public TaskService(ITaskRepository repository)
+    {
+        _repository = repository;
+    }
 
-    public bool AddTask(TaskItem newTask)
+    public bool AddTask(TaskItem newTask) 
     {
         //if the task is null the system throws an exception
         ArgumentNullException.ThrowIfNull(newTask);
 
-        return _tasks.TryAdd(newTask.Id, newTask);
+        return _repository.AddTask(newTask);
     }
 
-    public bool RemoveTask(string taskId)
+    public bool RemoveTask(string taskId) 
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(taskId);
 
-        //the dictionary tries to remove the task
-        return _tasks.Remove(taskId);
+        return _repository.RemoveTask(taskId);
     }
 
-    public bool GetTask(string taskId, out TaskItem foundTask)
+    public bool GetTask(string taskId, out TaskItem foundTask) 
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(taskId);
 
-        return TaskList.TryGetValue(taskId, out foundTask);
+        return _repository.GetTask(taskId,out foundTask);
+    }
+
+    public IEnumerable<TaskItem> GetAllTasks() => _repository.GetAllTasks();
+
+    public bool UpdateTask(TaskItem updatedTask)
+    {
+        ArgumentNullException.ThrowIfNull(updatedTask);
+
+        return _repository.UpdateTask(updatedTask);
     }
 }

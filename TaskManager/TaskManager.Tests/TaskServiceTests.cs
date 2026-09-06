@@ -9,7 +9,7 @@ public class TaskServiceTests
     {
         TaskItem newTask = null;
 
-        TaskService taskService = new TaskService();
+        TaskService taskService = new TaskService(new InMemoryTaskRepository());
 
         Assert.Throws<ArgumentNullException>(() => taskService.AddTask(newTask));
     }
@@ -17,7 +17,7 @@ public class TaskServiceTests
     [Fact]
     public void Remove_TaskIdIsNull_ThrowsArgumentNullException()
     {
-        TaskService taskService = new TaskService();
+        TaskService taskService = new TaskService(new InMemoryTaskRepository());
 
         Assert.ThrowsAny<ArgumentException>(() => taskService.RemoveTask(null));
     }
@@ -25,7 +25,7 @@ public class TaskServiceTests
     [Fact]
     public void GetTask_TaskIdIsNull_ThrowsArgumentNullException()
     {
-        TaskService taskService = new TaskService();
+        TaskService taskService = new TaskService(new InMemoryTaskRepository());
 
         Assert.ThrowsAny<ArgumentException>(() => taskService.GetTask(null, out _));
     }
@@ -33,22 +33,22 @@ public class TaskServiceTests
     [Fact]
     public void AddTask_ValidTask_ReturnsTrueAndAddsToList()
     {
-        TaskService taskService = new TaskService();
+        TaskService taskService = new TaskService(new InMemoryTaskRepository());
         TaskItem newTask = new TaskItem("Testar", "Garantir que a tarefa é adicionada");
 
         bool wasAdded = taskService.AddTask(newTask);
 
         Assert.True(wasAdded);
 
-        Assert.Single(taskService.TaskList);
+        Assert.Single(taskService.GetAllTasks());
 
-        Assert.True(taskService.TaskList.ContainsKey(newTask.Id));
+        Assert.Contains(taskService.GetAllTasks(), t => t.Id == newTask.Id);
     }
 
     [Fact]
     public void AddTask_DuplicateTask_ReturnsFalse()
     {
-        TaskService taskService = new TaskService();
+        TaskService taskService = new TaskService(new InMemoryTaskRepository());
         TaskItem newTask = new TaskItem("Testar", "Garantir que não adiciona duplicados");
 
         bool wasAdded = taskService.AddTask(newTask);
@@ -59,13 +59,13 @@ public class TaskServiceTests
 
         Assert.False(addedDuplicate);
 
-        Assert.Single(taskService.TaskList);
+        Assert.Single(taskService.GetAllTasks());
     }
 
     [Fact]
     public void RemoveTask_ExistingId_ReturnsTrueAndRemovesTask()
     {
-        TaskService taskService = new TaskService();
+        TaskService taskService = new TaskService(new InMemoryTaskRepository());
         TaskItem newTask = new TaskItem("Testar", "Remover com id existente retorna true e remove");
 
         taskService.AddTask(newTask);
@@ -74,13 +74,13 @@ public class TaskServiceTests
 
         Assert.True(wasRemoved);
 
-        Assert.Empty(taskService.TaskList);
+        Assert.Empty(taskService.GetAllTasks());
     }
 
     [Fact]
     public void RemoveTask_NonExistingId_ReturnsFalse()
     {
-        TaskService taskService = new TaskService();
+        TaskService taskService = new TaskService(new InMemoryTaskRepository());
         TaskItem newTask = new TaskItem("Testar", "Remover com id inexistente retorna false e não remove");
 
         taskService.AddTask(newTask);
@@ -89,13 +89,13 @@ public class TaskServiceTests
 
         Assert.False(wasRemoved);
 
-        Assert.Single(taskService.TaskList);
+        Assert.Single(taskService.GetAllTasks());
     }
 
     [Fact]
     public void GetTask_ExistingId_ReturnsTrueAndOutputsTask()
     {
-        TaskService taskService = new TaskService();
+        TaskService taskService = new TaskService(new InMemoryTaskRepository());
         TaskItem newTask = new TaskItem("Testar", "Garantir que a tarefa é encontrada");
 
         taskService.AddTask(newTask);
@@ -110,7 +110,7 @@ public class TaskServiceTests
     [Fact]
     public void GetTask_NonExistingId_ReturnsFalse()
     {
-        TaskService taskService = new TaskService();
+        TaskService taskService = new TaskService(new InMemoryTaskRepository());
         TaskItem newTask = new TaskItem("Testar", "Garantir que a tarefa não é encontrada");
 
         taskService.AddTask(newTask);

@@ -201,3 +201,10 @@
 /home/paxaxette/UMINHO/Pessoal/C#/Task-Manager/TaskManager/TaskManager.Tests/obj/Debug/net8.0/TaskManager.Tests.csproj.CopyComplete
 /home/paxaxette/UMINHO/Pessoal/C#/Task-Manager/TaskManager/TaskManager.Tests/obj/Debug/net8.0/TaskManager.Tests.genruntimeconfig.cache
 /home/paxaxette/UMINHO/Pessoal/C#/Task-Manager/TaskManager/TaskManager.Tests/obj/Debug/net8.0/ref/TaskManager.Tests.dll
+/home/paxaxette/UMINHO/Pessoal/C#/Task-Manager/TaskManager/TaskManager.Tests/bin/Debug/net8.0/DnsClient.dll
+/home/paxaxette/UMINHO/Pessoal/C#/Task-Manager/TaskManager/TaskManager.Tests/bin/Debug/net8.0/Microsoft.Extensions.Logging.Abstractions.dll
+/home/paxaxette/UMINHO/Pessoal/C#/Task-Manager/TaskManager/TaskManager.Tests/bin/Debug/net8.0/MongoDB.Bson.dll
+/home/paxaxette/UMINHO/Pessoal/C#/Task-Manager/TaskManager/TaskManager.Tests/bin/Debug/net8.0/MongoDB.Driver.dll
+/home/paxaxette/UMINHO/Pessoal/C#/Task-Manager/TaskManager/TaskManager.Tests/bin/Debug/net8.0/SharpCompress.dll
+/home/paxaxette/UMINHO/Pessoal/C#/Task-Manager/TaskManager/TaskManager.Tests/bin/Debug/net8.0/Snappier.dll
+/home/paxaxette/UMINHO/Pessoal/C#/Task-Manager/TaskManager/TaskManager.Tests/bin/Debug/net8.0/ZstdSharp.dll

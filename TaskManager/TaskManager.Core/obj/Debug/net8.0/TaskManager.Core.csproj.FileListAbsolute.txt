@@ -21,3 +21,4 @@
 /home/paxaxette/UMINHO/Pessoal/C#/Task-Manager/TaskManager/TaskManager.Core/obj/Debug/net8.0/refint/TaskManager.Core.dll
 /home/paxaxette/UMINHO/Pessoal/C#/Task-Manager/TaskManager/TaskManager.Core/obj/Debug/net8.0/TaskManager.Core.pdb
 /home/paxaxette/UMINHO/Pessoal/C#/Task-Manager/TaskManager/TaskManager.Core/obj/Debug/net8.0/ref/TaskManager.Core.dll
+/home/paxaxette/UMINHO/Pessoal/C#/Task-Manager/TaskManager/TaskManager.Core/obj/Debug/net8.0/TaskManager.Core.csproj.AssemblyReference.cache

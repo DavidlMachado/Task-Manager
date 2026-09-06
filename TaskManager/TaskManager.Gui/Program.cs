@@ -6,6 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+builder.Services.AddSingleton<ITaskRepository, MongoTaskRepository>();
 builder.Services.AddSingleton<TaskService>();
 
 var app = builder.Build();
