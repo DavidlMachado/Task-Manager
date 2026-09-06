@@ -8,22 +8,26 @@ The project is organized into three separate projects within a single solution (
 
 ```
 TaskManagerSolution/
-├── TaskManager.Core/     # Business logic (no dependency on UI or tests)
+├── TaskManager.Core/     # Business logic and persistence (no dependency on UI or tests)
 ├── TaskManager.Gui/      # Graphical interface built with Blazor Server
 └── TaskManager.Tests/    # Unit tests (xUnit)
 ```
 
 ### TaskManager.Core
 
-Contains the pure business logic, with no dependency on any UI or presentation layer.
+Contains the business logic and data access, with no dependency on any UI or presentation layer.
 
-- **`TaskItem`** — represents a single task. Has `Id` (auto-generated via `Guid`), `Name`, `Description`, and `Status` (enum). Validates `Name`/`Description` against null or empty values in the constructor. Exposes `ConcludeTask()` to mark the task as completed (idempotent, returns `bool` indicating whether a change occurred) and an overridden `ToString()` for a readable representation.
+- **`TaskItem`** — represents a single task. Has `Id` (auto-generated via `Guid`, mapped to MongoDB's `_id` via `[BsonId]`), `Name`, `Description`, and `Status` (enum). Validates `Name`/`Description` against null or empty values in the constructor. Exposes `ConcludeTask()` to mark the task as completed (idempotent, returns `bool` indicating whether a change occurred) and an overridden `ToString()` for a readable representation. Note: `ConcludeTask()` only mutates the in-memory object — callers must explicitly persist the change via `TaskService.UpdateTask(...)`.
 - **`TaskItemStatus`** — enum with the states `Pending` and `Concluded`.
-- **`TaskService`** — manages an in-memory collection of tasks. Exposes:
-  - `AddTask(TaskItem)` — adds a new task (uses `TryAdd`, does not throw on `Id` collision).
+- **`ITaskRepository`** — interface (contract) defining the storage operations a task repository must support: `AddTask`, `RemoveTask`, `GetTask`, `GetAllTasks`, and `UpdateTask`. Decouples `TaskService` from any specific storage technology.
+- **`InMemoryTaskRepository`** — in-memory implementation of `ITaskRepository`, backed by a `Dictionary<string, TaskItem>`. Useful for quick testing without external dependencies.
+- **`MongoTaskRepository`** — MongoDB-backed implementation of `ITaskRepository`, using the official `MongoDB.Driver` package. Connects to a local MongoDB instance (`mongodb://localhost:27017`), database `TaskManagerDB`, collection `TasksCollection`. Uses strongly-typed filters (`Builders<TaskItem>.Filter`) for all queries, avoiding NoSQL injection risks associated with hand-built query strings.
+- **`TaskService`** — the single entry point used by consumers (GUI, tests). Validates arguments (`ArgumentException.ThrowIfNullOrWhiteSpace`, `ArgumentNullException.ThrowIfNull`) and delegates storage operations to an injected `ITaskRepository`. Exposes:
+  - `AddTask(TaskItem)` — adds a new task.
   - `RemoveTask(string taskId)` — removes a task by `Id`.
   - `GetTask(string taskId, out TaskItem foundTask)` — looks up a task by `Id`.
-  - `TaskList` — read-only exposure (`IReadOnlyDictionary`) of the tasks, preventing external code from modifying the internal collection directly.
+  - `GetAllTasks()` — returns all tasks as `IEnumerable<TaskItem>`.
+  - `UpdateTask(TaskItem)` — persists changes made to an existing task (e.g. after calling `ConcludeTask()`).
 
 ### TaskManager.Gui
 
@@ -32,13 +36,33 @@ Graphical interface built with **Blazor Server** (chosen because the development
 - Allows adding new tasks through a form (name + description).
 - Lists existing tasks, with a visual indication of status.
 - Allows completing or removing tasks directly from the list.
-- `TaskService` is registered as a singleton (`AddSingleton`) to keep the in-memory data alive for the duration of the app's execution (note: without a database, data is lost on restart).
+- `ITaskRepository` (currently `MongoTaskRepository`) and `TaskService` are registered as singletons via dependency injection in `Program.cs`. Swapping storage implementations only requires changing one line in `Program.cs`.
+- Error handling distinguishes between validation errors (`ArgumentException`, e.g. empty task name) and infrastructure errors (`Exception`, e.g. database unreachable), showing an appropriate message in each case.
 
 ### TaskManager.Tests
 
-Unit test project (xUnit) for validating the behavior of `TaskService` and `TaskItem`.
+Unit test project (xUnit) for validating the behavior of `TaskService` and `TaskItem`, currently exercised against `InMemoryTaskRepository`.
+
+- **Planned**: integration tests for `MongoTaskRepository` against a real MongoDB instance, using a dedicated test database/collection to avoid polluting real data.
+
+## Persistence
+
+Task data is persisted in **MongoDB**, running locally via Docker:
+
+```bash
+docker run -d -p 27017:27017 --name mongo-taskmanager mongo:latest
+```
+
+Inspect stored data directly:
+```bash
+docker exec -it mongo-taskmanager mongosh
+use TaskManagerDB
+db.TasksCollection.find().pretty()
+```
 
 ## Running the project
+
+**Prerequisite:** MongoDB container must be running (see above).
 
 **GUI:**
 ```bash
@@ -61,87 +85,17 @@ dotnet build
 
 ## Design decisions
 
-- **Encapsulated task collection**: `TaskService` exposes tasks through `IReadOnlyDictionary`, backed by a private internal `Dictionary` field — prevents external code from modifying the collection without going through the class's methods.
+- **Repository pattern**: `TaskService` depends on the `ITaskRepository` abstraction rather than a concrete storage implementation, allowing storage to be swapped (in-memory ↔ MongoDB) without changing business logic, GUI, or test code that consumes `TaskService`.
+- **Encapsulated collections**: repositories expose data through interfaces (`IReadOnlyDictionary` in the original design, now `IEnumerable<TaskItem>` via `GetAllTasks()`), preventing external code from bypassing the service layer.
 - **Enum instead of bool for status**: `TaskItemStatus` (instead of a simple `bool Status`) for clarity and future extensibility (e.g. `InProgress`).
-- **Consistent `bool` returns**: all action methods (`AddTask`, `RemoveTask`, `ConcludeTask`) return `bool` to indicate success/failure, instead of throwing exceptions or failing silently.
-- **Argument validation**: consistent use of `ArgumentException.ThrowIfNullOrWhiteSpace` and `ArgumentNullException.ThrowIfNull` throughout the codebase.
+- **Consistent `bool` returns**: all action methods (`AddTask`, `RemoveTask`, `UpdateTask`, `ConcludeTask`) return `bool` to indicate success/failure, instead of throwing exceptions or failing silently for expected outcomes (e.g. "task not found").
+- **Argument validation centralized in `TaskService`**: repositories stay simple and focused only on storage; validation logic isn't duplicated across implementations.
+- **Selective exception handling**: expected outcomes (e.g. duplicate key on insert, no document found on delete/update) are represented via `bool`/return values rather than exceptions. Truly exceptional conditions (e.g. database connection failures) are allowed to propagate up to the GUI layer, where they're caught and translated into a user-friendly message — distinct from validation error messages.
+- **NoSQL injection avoidance**: all MongoDB queries use the strongly-typed `Builders<TaskItem>.Filter` API rather than hand-built query strings, ensuring user input is always treated as a value, never as a query operator.
 
 ## Next steps
 
-- [ ] Add persistence with a database (deciding between MySQL or NoSQL/MongoDB).
-- [ ] Introduce the Repository pattern (`ITaskRepository`) to decouple `TaskService` from the storage mechanism.
-- [ ] Expand unit test coverage.
-- [ ] Address nullability (`Nullable`) warnings in `TaskService`.# TaskManager
-
-Projeto de aprendizagem em C# — um gestor de tarefas simples, criado como preparação para um estágio na Checkmarx (equipa de SCA), com o objetivo de praticar fundamentos da linguagem, boas práticas de encapsulamento, e conceitos de arquitetura de projetos .NET.
-
-## Estrutura da solução
-
-O projeto está organizado em três projetos separados dentro de uma solução (`.sln`), seguindo o princípio de separação de responsabilidades:
-
-```
-TaskManager/
-├── TaskManager.Core/     # Lógica de negócio (sem dependências de UI ou testes)
-├── TaskManager.Gui/      # Interface gráfica em Blazor Server
-└── TaskManager.Tests/    # Testes unitários (xUnit)
-```
-
-### TaskManager.Core
-
-Contém a lógica de negócio pura, sem qualquer dependência de interface ou forma de apresentação.
-
-- **`TaskItem`** — representa uma tarefa individual. Tem `Id` (gerado automaticamente via `Guid`), `Name`, `Description`, e `Status` (enum). Valida `Name`/`Description` contra valores nulos ou vazios no construtor. Expõe `ConcludeTask()` para marcar a tarefa como concluída (idempotente, devolve `bool` a indicar se houve alteração) e um `ToString()` sobrescrito para representação legível.
-- **`TaskItemStatus`** — enum com os estados `Pending` e `Concluded`.
-- **`TaskService`** — gere uma coleção de tarefas em memória. Expõe:
-  - `AddTask(TaskItem)` — adiciona uma tarefa nova (usa `TryAdd`, não lança exceção em caso de colisão de `Id`).
-  - `RemoveTask(string taskId)` — remove uma tarefa pelo `Id`.
-  - `GetTask(string taskId, out TaskItem foundTask)` — procura uma tarefa pelo `Id`.
-  - `TaskList` — exposição só de leitura (`IReadOnlyDictionary`) das tarefas, para evitar que código externo modifique a coleção interna diretamente.
-
-### TaskManager.Gui
-
-Interface gráfica construída em **Blazor Server** (escolhida por o ambiente de desenvolvimento ser Linux, onde WPF/WinForms/MAUI desktop não estão disponíveis).
-
-- Permite adicionar novas tarefas através de um formulário (nome + descrição).
-- Lista as tarefas existentes, com indicação visual de estado.
-- Permite concluir ou remover tarefas diretamente na lista.
-- `TaskService` é registado como singleton (`AddSingleton`) para persistir os dados em memória durante a execução da aplicação (nota: sem base de dados, os dados são perdidos ao reiniciar a app).
-
-### TaskManager.Tests
-
-Projeto de testes unitários (xUnit) para validar o comportamento de `TaskService` e `TaskItem`.
-
-## Como correr o projeto
-
-**Interface gráfica:**
-```bash
-cd TaskManager.Gui
-dotnet run
-```
-Depois abrir o URL indicado no terminal (ex: `http://localhost:5002`) no browser.
-
-**Testes:**
-```bash
-cd TaskManager.Tests
-dotnet test
-```
-
-**Compilar tudo:**
-```bash
-dotnet build
-```
-(a partir da raiz da solução)
-
-## Decisões de design
-
-- **Encapsulamento da coleção de tarefas**: `TaskService` expõe as tarefas através de `IReadOnlyDictionary`, mantendo um campo privado `Dictionary` interno — evita que código externo modifique a coleção sem passar pelos métodos da classe.
-- **Enum em vez de bool para estado**: `TaskItemStatus` (em vez de um simples `bool Status`) para maior clareza e possibilidade de expansão futura (ex: `InProgress`).
-- **Retorno consistente de `bool`**: todos os métodos de ação (`AddTask`, `RemoveTask`, `ConcludeTask`) devolvem `bool` para indicar sucesso/falha da operação, em vez de lançar exceções ou falhar silenciosamente.
-- **Validação de argumentos**: uso de `ArgumentException.ThrowIfNullOrWhiteSpace` e `ArgumentNullException.ThrowIfNull` para validação consistente em toda a codebase.
-
-## Próximos passos
-
-- [ ] Adicionar persistência com base de dados (a decidir entre MySQL ou NoSQL/MongoDB).
-- [ ] Introduzir o padrão Repository (`ITaskRepository`) para desacoplar `TaskService` da forma de armazenamento.
-- [ ] Expandir cobertura de testes unitários.
-- [ ] Rever tratamento de nulabilidade (`Nullable` warnings) em `TaskService`.
+- [ ] Add integration tests for `MongoTaskRepository` (dedicated test database/collection, setup/teardown per test).
+- [ ] Make MongoDB connection string/database/collection names configurable (currently hardcoded in `MongoTaskRepository`'s constructor) instead of injected via constructor parameters.
+- [ ] Address remaining nullability (`Nullable`) warnings.
+- [ ] Consider adding a global exception handler in the Blazor app for unhandled infrastructure errors.
